@@ -1,77 +1,92 @@
 /**
- * calculator.js
- * Contains the logic for the Endotoxin MU Calculator.
+ * Endotoxin Uncertainty Calculator - calculator.js
+ * * Data extracted from the Endotoxin MU Calculation images.
+ * The 'combined_u' is the Relative Combined Standard Uncertainty (uc/x) from the table, 
+ * which is then multiplied by the Result (x) to get the absolute uc.
+ * The 'expanded_u_log10' is the value used to calculate the uncertainty interval.
  */
 
-// Define the Expanded Uncertainty (k=2) values from the source data for convenience
-const EXPANDED_UNCERTAINTIES = {
-    '1': 0.058971,  // For 1X Dilution
-    '10': 0.060709, // For 10X Dilution
-    '25': 0.055825  // For 25X Dilution
+const uncertaintyData = {
+    // These values are the 'Combined uncertainty' (uc/x) and 'Expanded uncertainty, k=2' (Expanded Uncertainty Value (Log10)) 
+    // extracted from the image data for each dilution.
+    "1X": {
+        combined_u_relative: 0.0295, // Combined uncertainty (uc/x)
+        expanded_u_log10: 0.0590     // Expanded uncertainty, k=2 (U/x)
+    },
+    "10X": {
+        combined_u_relative: 0.0304, // Combined uncertainty (uc/x)
+        expanded_u_log10: 0.0608     // Expanded uncertainty, k=2 (U/x)
+    },
+    "25X": {
+        combined_u_relative: 0.0279, // Combined uncertainty (uc/x)
+        expanded_u_log10: 0.0558     // Expanded uncertainty, k=2 (U/x)
+    }
 };
 
-function updateUncertaintyPlaceholder() {
-    const dilution = document.getElementById('sampleDilution').value;
-    const uncertaintyInput = document.getElementById('expandedUncertaintyLog10');
+/**
+ * Performs the Endotoxin Measurement Uncertainty (MU) calculations.
+ */
+function calculateUncertainty() {
+    // 1. Get user inputs
+    const selectedDilution = document.getElementById('dilution').value;
+    const result = parseFloat(document.getElementById('result').value);
+
+    // Get the uncertainty constants for the selected dilution
+    const data = uncertaintyData[selectedDilution];
     
-    // Set the placeholder/value based on the selected dilution factor
-    uncertaintyInput.value = EXPANDED_UNCERTAINTIES[dilution];
-}
-
-function calculateEndotoxinMU() {
-    // 1. Get input values
-    const resultEU = parseFloat(document.getElementById('resultEU').value) || 0;
-    const expandedUncertaintyLog10 = parseFloat(document.getElementById('expandedUncertaintyLog10').value) || 0;
-
-    // Basic Input Validation
-    if (resultEU <= 0 || expandedUncertaintyLog10 <= 0) {
-        displayError("Please ensure Result (EU/mL) and Expanded Uncertainty (Log10) are positive values.");
+    // Validate inputs
+    if (isNaN(result) || result <= 0) {
+        document.getElementById('uc_value').textContent = 'Invalid Result';
+        document.getElementById('relative_uc_value').textContent = '';
+        document.getElementById('expanded_log10_value').textContent = 'N/A';
+        document.getElementById('report_result_with_mu').textContent = 'N/A';
+        document.getElementById('interval_low').textContent = 'N/A';
+        document.getElementById('interval_high').textContent = 'N/A';
         return;
     }
+
+    // --- Core Calculations ---
     
-    // --- 2. Perform Calculations ---
-
-    // A. Log10 of Result
-    const log10Result = Math.log10(resultEU);
-
-    // B. MU of the sample (Log10) interval
-    const uncertaintyIntervalLog10Lower = log10Result - expandedUncertaintyLog10;
-    const uncertaintyIntervalLog10Upper = log10Result + expandedUncertaintyLog10;
-
-    // C. Convert Log10 Interval back to EU/mL (10^Log10)
-    const muSampleEULower = Math.pow(10, uncertaintyIntervalLog10Lower);
-    const muSampleEUUpper = Math.pow(10, uncertaintyIntervalLog10Upper);
-
-    // --- 3. Display Results (Formatting based on image precision) ---
+    // 2. Calculate Combined Standard Uncertainty (uc) - Absolute Value
+    // Formula from the spreadsheet structure: uc/x * x = uc (Absolute)
+    const absolute_uc = data.combined_u_relative * result;
     
-    // Report Result (Log10) - 4 decimal places
-    document.getElementById('log10Result').textContent = log10Result.toFixed(4);
+    // 3. Calculate Expanded Uncertainty (U) - Absolute Value
+    // The spreadsheet uses the 'Expanded uncertainty, k=2' value which is U/x (Relative Expanded Uncertainty)
+    // Formula: U/x * x = U (Absolute)
+    const absolute_U = data.expanded_u_log10 * result;
+    
+    // 4. Calculate the Log10 Expanded Uncertainty Value
+    // This value is the one reported directly in the yellow cell of the spreadsheet.
+    // It is the Relative Expanded Uncertainty (U/x) * 100 to make it a percentage, 
+    // or simply the value 'Expanded uncertainty, k=2' from the table.
+    const expanded_log10_value = data.expanded_u_log10;
 
-    // Report Result (EU/mL) - 1 decimal place for value, 4 for uncertainty (from Log10 input)
-    document.getElementById('reportResultEU').textContent = resultEU.toFixed(1);
-    document.getElementById('reportUncertaintyEU').textContent = expandedUncertaintyLog10.toFixed(4); // Displaying the Log10 uncertainty for context
+    // 5. Calculate the Uncertainty Interval (MU of the sample)
+    // The image shows the interval is calculated using the Log10 Expanded Uncertainty Value (U/x)
+    // Low Limit: Result / 10^(U/x)
+    // High Limit: Result * 10^(U/x)
+    const log_term = Math.pow(10, expanded_log10_value);
+    const interval_low = result / log_term;
+    const interval_high = result * log_term;
 
-    // MU of the sample (EU/mL) - 3 decimal places (based on 49.889)
-    const formattedMULower = muSampleEULower.toFixed(3);
-    const formattedMUUpper = muSampleEUUpper.toFixed(3);
-    document.getElementById('muLower').textContent = formattedMULower;
-    document.getElementById('muUpper').textContent = formattedMUUpper;
+    // --- Display Results ---
+    
+    // 1. Combined Standard Uncertainty
+    document.getElementById('uc_value').textContent = absolute_uc.toFixed(4);
+    document.getElementById('relative_uc_value').textContent = (data.combined_u_relative * 100).toFixed(2) + '%';
+    
+    // 2. Expanded Uncertainty Value (Log10)
+    document.getElementById('expanded_log10_value').textContent = expanded_log10_value.toFixed(4);
+    
+    // 3. Report Result
+    // Result +/- Absolute Expanded Uncertainty (U)
+    document.getElementById('report_result_with_mu').textContent = `${result.toFixed(4)} \u00B1 ${absolute_U.toFixed(4)}`; 
 
-    // Uncertainty Interval (EU/mL) - 3 decimal places (matching the MU fields)
-    // NOTE: Unlike the Bioburden calc, the Endotoxin example does NOT round to integer, 
-    // it simply displays the calculated MU values.
-    document.getElementById('intervalLower').textContent = formattedMULower;
-    document.getElementById('intervalUpper').textContent = formattedMUUpper;
+    // 4. Uncertainty Interval
+    document.getElementById('interval_low').textContent = interval_low.toFixed(4);
+    document.getElementById('interval_high').textContent = interval_high.toFixed(4);
 }
 
-function displayError(message) {
-    // Clear and display an error message
-    document.getElementById('log10Result').textContent = 'ERR';
-    document.getElementById('reportResultEU').textContent = 'ERR';
-    document.getElementById('reportUncertaintyEU').textContent = 'ERR';
-    document.getElementById('muLower').textContent = 'ERR';
-    document.getElementById('muUpper').textContent = 'ERR';
-    document.getElementById('intervalLower').textContent = 'ERR';
-    document.getElementById('intervalUpper').textContent = 'ERR';
-    alert(message);
-}
+// Run calculation on page load with default values
+document.addEventListener('DOMContentLoaded', calculateUncertainty);
