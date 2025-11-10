@@ -3,52 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Endotoxin Uncertainty Calculator</title>
+    <title>Endotoxin Limit Calculator</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 650px; margin: 30px auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); background-color: #f9f9f9; }
-        h1 { color: #2c3e50; text-align: center; border-bottom: 2px solid #3498db; padding-bottom: 10px; margin-bottom: 20px; }
-        .input-group { margin-bottom: 15px; padding: 10px; background-color: #ecf0f1; border-radius: 5px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; color: #34495e; }
-        select, input[type="number"] { width: 100%; padding: 10px; border: 1px solid #bdc3c7; border-radius: 4px; box-sizing: border-box; font-size: 16px; }
-        button { width: 100%; padding: 12px; background-color: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; margin-top: 20px; }
-        button:hover { background-color: #2980b9; }
-        #results-area { margin-top: 25px; padding: 15px; border: 2px solid #2ecc71; border-radius: 5px; background-color: #e8f8f5; }
-        .result-line { margin-bottom: 8px; font-size: 1.1em; }
-        .result-value { font-weight: bold; color: #e74c3c; }
-        .label-key { background-color: #f39c12; color: white; padding: 3px 6px; border-radius: 3px; margin-right: 5px; font-size: 0.8em; }
+        body { font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
+        label { display: block; margin-top: 10px; font-weight: bold; }
+        input, select { width: 100%; padding: 8px; margin-top: 5px; box-sizing: border-box; }
+        button { margin-top: 20px; padding: 10px 15px; background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+        #result { margin-top: 20px; padding: 15px; border: 1px solid #ccc; background-color: #f9f9f9; }
     </style>
 </head>
 <body>
-    <h1>🔬 Endotoxin MU Calculator</h1>
+    <h1>Endotoxin Limit (EL) Calculator</h1>
     
-    <div class="input-group">
-        <label for="dilution">Select Sample Dilution:</label>
-        <select id="dilution" onchange="calculateUncertainty()">
-            <option value="1X">1X</option>
-            <option value="10X">10X</option>
-            <option value="25X">25X</option>
-        </select>
-    </div>
+    <label for="route">Route of Administration (K value):</label>
+    <select id="route">
+        <option value="5.0">IV/IM/Other Parenteral (5.0 EU/kg/hr)</option>
+        <option value="0.2">Intrathecal (0.2 EU/kg/hr)</option>
+    </select>
+    
+    <label for="maxDose">Maximum Recommended Dose (M):</label>
+    <input type="number" id="maxDose" placeholder="e.g., 50 (mg or Units)" step="any">
+    
+    <label for="doseUnit">Dose Unit:</label>
+    <select id="doseUnit">
+        <option value="mass">mg/kg/hr or Unit/kg/hr</option>
+        <option value="volume">mL/kg/hr</option>
+    </select>
 
-    <div class="input-group">
-        <label for="result">Analytical Result (EU/mL):</label>
-        <input type="number" id="result" value="50.0000" step="any" oninput="calculateUncertainty()">
-    </div>
-
-    <div id="results-area">
-        <h2>Calculation Results</h2>
-        <div class="result-line">
-            <span class="label-key">1</span> **Combined Standard Uncertainty ($u_c$):** <span id="uc_value" class="result-value">0.0000</span> (Relative: <span id="relative_uc_value">0.00%</span>)
-        </div>
-        <div class="result-line">
-            <span class="label-key">2</span> **Expanded Uncertainty Value (Log10):** <span id="expanded_log10_value" class="result-value">0.0000</span>
-        </div>
-        <div class="result-line">
-            <span class="label-key">3</span> **Report Result:** <span id="report_result_with_mu" class="result-value">0.0000 &plusmn; 0.0000</span> EU/mL
-        </div>
-        <div class="result-line">
-            <span class="label-key">4</span> **Uncertainty Interval (EU/mL):** <span id="interval_low" class="result-value">0.0000</span> to <span id="interval_high" class="result-value">0.0000</span> EU/mL
-        </div>
+    <button onclick="calculateEndotoxinLimit()">Calculate Endotoxin Limit (EL = K/M)</button>
+    
+    <div id="result">
+        **Result: EL = [Calculated Value] EU / [Dose Unit]**
     </div>
 
     <script src="calculator.js"></script>
