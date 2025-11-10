@@ -1,92 +1,49 @@
 /**
- * Endotoxin Uncertainty Calculator - calculator.js
- * * Data extracted from the Endotoxin MU Calculation images.
- * The 'combined_u' is the Relative Combined Standard Uncertainty (uc/x) from the table, 
- * which is then multiplied by the Result (x) to get the absolute uc.
- * The 'expanded_u_log10' is the value used to calculate the uncertainty interval.
+ * Endotoxin Limit (EL) Calculator
+ * Formula: EL = K / M
+ * K: Threshold Pyrogenic Dose (depends on route)
+ * M: Maximum Recommended Dose per kg per hour
  */
+function calculateEndotoxinLimit() {
+    // 1. Get input values
+    const kValue = parseFloat(document.getElementById('route').value);
+    const mValue = parseFloat(document.getElementById('maxDose').value);
+    const doseUnitSelection = document.getElementById('doseUnit').value;
+    const resultDiv = document.getElementById('result');
 
-const uncertaintyData = {
-    // These values are the 'Combined uncertainty' (uc/x) and 'Expanded uncertainty, k=2' (Expanded Uncertainty Value (Log10)) 
-    // extracted from the image data for each dilution.
-    "1X": {
-        combined_u_relative: 0.0295, // Combined uncertainty (uc/x)
-        expanded_u_log10: 0.0590     // Expanded uncertainty, k=2 (U/x)
-    },
-    "10X": {
-        combined_u_relative: 0.0304, // Combined uncertainty (uc/x)
-        expanded_u_log10: 0.0608     // Expanded uncertainty, k=2 (U/x)
-    },
-    "25X": {
-        combined_u_relative: 0.0279, // Combined uncertainty (uc/x)
-        expanded_u_log10: 0.0558     // Expanded uncertainty, k=2 (U/x)
-    }
-};
-
-/**
- * Performs the Endotoxin Measurement Uncertainty (MU) calculations.
- */
-function calculateUncertainty() {
-    // 1. Get user inputs
-    const selectedDilution = document.getElementById('dilution').value;
-    const result = parseFloat(document.getElementById('result').value);
-
-    // Get the uncertainty constants for the selected dilution
-    const data = uncertaintyData[selectedDilution];
-    
-    // Validate inputs
-    if (isNaN(result) || result <= 0) {
-        document.getElementById('uc_value').textContent = 'Invalid Result';
-        document.getElementById('relative_uc_value').textContent = '';
-        document.getElementById('expanded_log10_value').textContent = 'N/A';
-        document.getElementById('report_result_with_mu').textContent = 'N/A';
-        document.getElementById('interval_low').textContent = 'N/A';
-        document.getElementById('interval_high').textContent = 'N/A';
+    // 2. Input validation
+    if (isNaN(kValue) || isNaN(mValue) || mValue <= 0) {
+        resultDiv.innerHTML = "**Error:** Please enter valid, positive numbers for the Dose (M).";
         return;
     }
 
-    // --- Core Calculations ---
-    
-    // 2. Calculate Combined Standard Uncertainty (uc) - Absolute Value
-    // Formula from the spreadsheet structure: uc/x * x = uc (Absolute)
-    const absolute_uc = data.combined_u_relative * result;
-    
-    // 3. Calculate Expanded Uncertainty (U) - Absolute Value
-    // The spreadsheet uses the 'Expanded uncertainty, k=2' value which is U/x (Relative Expanded Uncertainty)
-    // Formula: U/x * x = U (Absolute)
-    const absolute_U = data.expanded_u_log10 * result;
-    
-    // 4. Calculate the Log10 Expanded Uncertainty Value
-    // This value is the one reported directly in the yellow cell of the spreadsheet.
-    // It is the Relative Expanded Uncertainty (U/x) * 100 to make it a percentage, 
-    // or simply the value 'Expanded uncertainty, k=2' from the table.
-    const expanded_log10_value = data.expanded_u_log10;
+    // 3. Calculation: EL = K / M
+    const elResult = kValue / mValue;
 
-    // 5. Calculate the Uncertainty Interval (MU of the sample)
-    // The image shows the interval is calculated using the Log10 Expanded Uncertainty Value (U/x)
-    // Low Limit: Result / 10^(U/x)
-    // High Limit: Result * 10^(U/x)
-    const log_term = Math.pow(10, expanded_log10_value);
-    const interval_low = result / log_term;
-    const interval_high = result * log_term;
+    // 4. Determine the units for the result
+    let unitLabel = "";
+    if (doseUnitSelection === 'mass') {
+        unitLabel = "mg or Unit"; // Assuming 'M' input is dose/kg/hr in mg/kg/hr or Unit/kg/hr
+    } else if (doseUnitSelection === 'volume') {
+        unitLabel = "mL"; // Assuming 'M' input is dose/kg/hr in mL/kg/hr
+    }
 
-    // --- Display Results ---
-    
-    // 1. Combined Standard Uncertainty
-    document.getElementById('uc_value').textContent = absolute_uc.toFixed(4);
-    document.getElementById('relative_uc_value').textContent = (data.combined_u_relative * 100).toFixed(2) + '%';
-    
-    // 2. Expanded Uncertainty Value (Log10)
-    document.getElementById('expanded_log10_value').textContent = expanded_log10_value.toFixed(4);
-    
-    // 3. Report Result
-    // Result +/- Absolute Expanded Uncertainty (U)
-    document.getElementById('report_result_with_mu').textContent = `${result.toFixed(4)} \u00B1 ${absolute_U.toFixed(4)}`; 
-
-    // 4. Uncertainty Interval
-    document.getElementById('interval_low').textContent = interval_low.toFixed(4);
-    document.getElementById('interval_high').textContent = interval_high.toFixed(4);
+    // 5. Display the result
+    resultDiv.innerHTML = `
+        <h2>Calculation Results</h2>
+        <p><strong>K Value (Threshold Pyrogenic Dose):</strong> ${kValue.toFixed(2)} EU/kg/hr</p>
+        <p><strong>M Value (Max Dose/kg/hr):</strong> ${mValue.toFixed(4)} ${unitLabel.replace(" or Unit", "")}/kg/hr</p>
+        <p><strong>Endotoxin Limit (EL):</strong> ${elResult.toFixed(4)} EU / ${unitLabel}</p>
+        <p>This means your product cannot exceed ${elResult.toFixed(4)} Endotoxin Units per ${unitLabel} of product.</p>
+    `;
 }
 
-// Run calculation on page load with default values
-document.addEventListener('DOMContentLoaded', calculateUncertainty);
+// NOTE on Measurement Uncertainty (MU) Calculation:
+/*
+The formula for combined uncertainty (Uc) in a typical LAL assay is complex and involves Root Sum of Squares (RSS).
+If your formula is: C_sample = (Endotoxin Reading * Dilution Factor) / Potency
+Then the relative combined uncertainty (u_c,rel) would generally be:
+u_c,rel = SQRT( (u_Reading,rel)^2 + (u_Dilution,rel)^2 + (u_Potency,rel)^2 )
+And the absolute expanded uncertainty (U) is: U = u_c * k, where k is the coverage factor (e.g., 2 for 95% confidence).
+The individual relative uncertainties (u_rel) must be determined from sources like standard curve RSD, volume uncertainties, etc.
+*/
