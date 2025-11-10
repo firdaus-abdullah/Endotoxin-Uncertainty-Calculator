@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Endotoxin MU Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #007bff;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .highlight {
+            background-color: #ffff00; /* Yellow highlight for input/key fields */
+        }
+        input[type="number"] {
+            width: 100px;
+            padding: 5px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+        }
+        .section-header {
+            background-color: #e9ecef;
+            font-weight: bold;
+            text-align: center;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+        button:hover {
+            background-color: #1e7e34;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🦠 Endotoxin MU Calculator</h2>
+    
+    <p>Please enter the required **Result (EU/mL)** and the **Expanded Uncertainty Value (Log10)** corresponding to the dilution used for your sample.</p>
+    
+    <table>
+        <thead>
+            <tr>
+                <th colspan="2">Parameter</th>
+                <th>Value</th>
+                <th>Note</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr class="highlight">
+                <td colspan="2">Sample Dilution:</td>
+                <td>
+                    <select id="sampleDilution" onchange="updateUncertaintyPlaceholder()">
+                        <option value="1">1X</option>
+                        <option value="10">10X</option>
+                        <option value="25">25X</option>
+                    </select>
+                </td>
+                <td>Key in here</td>
+            </tr>
+            <tr class="highlight">
+                <td colspan="2">Result (EU/mL):</td>
+                <td><input type="number" id="resultEU" value="50"></td>
+                <td>Key in result here</td>
+            </tr>
+            <tr class="highlight">
+                <td colspan="2">Expanded Uncertainty Value (Log10):</td>
+                <td><input type="number" id="expandedUncertaintyLog10" value="0.058971"></td>
+                <td>Combined uncertainty value, k=2. **Value changes based on selected Dilution.**</td>
+            </tr>
+            
+            <tr class="section-header"><td colspan="4">CALCULATED RESULTS</td></tr>
+            <tr>
+                <td rowspan="2">Report Result:</td>
+                <td>(EU/mL)</td>
+                <td><span id="reportResultEU"></span> $\pm$ <span id="reportUncertaintyEU"></span></td>
+                <td rowspan="2">Include uncertainty to the result</td>
+            </tr>
+            <tr>
+                <td>(Log10)</td>
+                <td><span id="log10Result"></span></td>
+                <td>Result converted to Log10</td>
+            </tr>
+            <tr>
+                <td rowspan="2">MU of the sample (EU/mL):</td>
+                <td>Lower:</td>
+                <td id="muLower"></td>
+                <td rowspan="2">Upper and lower interval, result will minus and add from expanded uncertainty value (Log10)</td>
+            </tr>
+            <tr>
+                <td>Upper:</td>
+                <td id="muUpper"></td>
+            </tr>
+            <tr>
+                <td colspan="2">Uncertainty Interval (EU/mL):</td>
+                <td><span id="intervalLower"></span> to <span id="intervalUpper"></span> EU/mL</td>
+                <td>**Report as uncertainty interval, compare with specification**</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <button onclick="calculateEndotoxinMU()">Calculate Endotoxin MU</button>
+
+    <div class="note">
+        <p>The **Expanded Uncertainty Value (Log10)** input field is automatically populated with the $k=2$ value from the source data for the selected dilution (1X, 10X, or 25X). You may adjust this value manually if needed.</p>
+        <ul>
+            <li>**1X:** 0.058971</li>
+            <li>**10X:** 0.060709</li>
+            <li>**25X:** 0.055825</li>
+        </ul>
+    </div>
+</div>
+
+<script src="calculator.js"></script>
+<script>
+    // Initial call to set placeholder and calculate
+    document.addEventListener('DOMContentLoaded', () => {
+        updateUncertaintyPlaceholder();
+        calculateEndotoxinMU();
+    });
+</script>
+
+</body>
+</html>
