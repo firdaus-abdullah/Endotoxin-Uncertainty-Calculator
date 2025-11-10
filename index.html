@@ -3,39 +3,384 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Endotoxin Limit Calculator</title>
+    <title>Endotoxin MU Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script type="module">
+        import { Scale, Droplet, ArrowLeftRight, Divide, PlusCircle, ChevronsDown, ChevronsUp, MinusCircle } from 'https://cdn.skypack.dev/lucide@0.292.0';
+        window.lucide = { Scale, Droplet, ArrowLeftRight, Divide, PlusCircle, ChevronsDown, ChevronsUp, MinusCircle };
+    </script>
     <style>
-        body { font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
-        label { display: block; margin-top: 10px; font-weight: bold; }
-        input, select { width: 100%; padding: 8px; margin-top: 5px; box-sizing: border-box; }
-        button { margin-top: 20px; padding: 10px 15px; background-color: #4CAF50; color: white; border: none; cursor: pointer; }
-        #result { margin-top: 20px; padding: 15px; border: 1px solid #ccc; background-color: #f9f9f9; }
+        /* Custom styles for smoother transitions */
+        .transition-all { transition: all 0.3s ease; }
+        .font-inter { font-family: 'Inter', sans-serif; }
     </style>
 </head>
-<body>
-    <h1>Endotoxin Limit (EL) Calculator</h1>
-    
-    <label for="route">Route of Administration (K value):</label>
-    <select id="route">
-        <option value="5.0">IV/IM/Other Parenteral (5.0 EU/kg/hr)</option>
-        <option value="0.2">Intrathecal (0.2 EU/kg/hr)</option>
-    </select>
-    
-    <label for="maxDose">Maximum Recommended Dose (M):</label>
-    <input type="number" id="maxDose" placeholder="e.g., 50 (mg or Units)" step="any">
-    
-    <label for="doseUnit">Dose Unit:</label>
-    <select id="doseUnit">
-        <option value="mass">mg/kg/hr or Unit/kg/hr</option>
-        <option value="volume">mL/kg/hr</option>
-    </select>
+<body class="bg-gray-50 p-4 sm:p-8 font-inter">
 
-    <button onclick="calculateEndotoxinLimit()">Calculate Endotoxin Limit (EL = K/M)</button>
-    
-    <div id="result">
-        **Result: EL = [Calculated Value] EU / [Dose Unit]**
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-2 flex items-center">
+            <span id="icon-scale"></span>
+            Endotoxin MU Calculator
+        </h1>
+        <p class="text-gray-600 mb-8">
+            Calculate the Expanded Uncertainty and Uncertainty Interval for your Endotoxin test. (Using k=2 for 95% confidence).
+        </p>
+
+        <!-- Dilution Selection -->
+        <div class="mb-6 p-4 bg-white rounded-xl shadow-md border border-indigo-100">
+            <h2 class="text-md font-semibold text-indigo-700 mb-3 flex items-center">
+                <span id="icon-droplet" class="w-4 h-4 mr-2"></span>
+                Select Sample Dilution:
+            </h2>
+            <div class="flex space-x-4" id="dilution-buttons">
+                <!-- Buttons rendered by JS -->
+            </div>
+        </div>
+
+        <!-- Input Section -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <!-- Input 1: Result -->
+            <div class="flex items-center space-x-3 p-4 bg-white rounded-xl shadow-lg transition duration-300 hover:shadow-xl border border-gray-100">
+                <div class="p-3 rounded-full bg-opacity-10 bg-indigo-600">
+                    <span id="icon-result" class="w-6 h-6 text-indigo-600"></span>
+                </div>
+                <div class="flex-grow">
+                    <label class="text-xs font-semibold uppercase text-gray-500">Endotoxin Result of Sample (EU/mL)</label>
+                    <div class="flex items-center">
+                        <input type="number" id="input-result" step="0.0001" class="w-full text-2xl font-bold text-gray-800 focus:outline-none focus:ring-0 border-none p-0">
+                        <span class="text-lg font-medium text-gray-500 ml-2">EU/mL</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Input 2: Combined Uncertainty -->
+            <div class="flex items-center space-x-3 p-4 bg-white rounded-xl shadow-lg transition duration-300 hover:shadow-xl border border-gray-100">
+                <div class="p-3 rounded-full bg-opacity-10 bg-red-500">
+                    <span id="icon-uc" class="w-6 h-6 text-red-500"></span>
+                </div>
+                <div class="flex-grow">
+                    <label class="text-xs font-semibold uppercase text-gray-500">Combined Standard Uncertainty (u_c)</label>
+                    <div class="flex items-center">
+                        <input type="number" id="input-uc" step="0.0001" class="w-full text-2xl font-bold text-gray-800 focus:outline-none focus:ring-0 border-none p-0">
+                        <span class="text-lg font-medium text-gray-500 ml-2">EU/mL</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div class="bg-white p-6 rounded-xl shadow-2xl border-t-4 border-teal-500 mb-8">
+            <h2 class="text-xl font-bold text-teal-700 mb-4 flex items-center">
+                <span id="icon-plus-circle"></span>
+                Expanded Uncertainty Results (k=2.0)
+            </h2>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+                <!-- Result Cards -->
+                <div id="card-expanded-uncertainty"></div>
+                <div id="card-min-uncertainty"></div>
+                <div id="card-max-uncertainty"></div>
+            </div>
+
+            <div class="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <p class="text-xl font-bold text-gray-900" id="report-result"></p>
+                <p class="text-lg text-gray-700 mt-1" id="report-interval"></p>
+            </div>
+        </div>
+
+        <!-- Component Data Table Toggle -->
+        <button id="toggle-components" class="w-full flex justify-between items-center px-4 py-3 text-lg font-semibold text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition duration-150">
+            <span id="component-title">Uncertainty Source Components (25X Dilution Data)</span>
+            <span id="toggle-icon"></span>
+        </button>
+
+        <!-- Component Data Table -->
+        <div id="component-table-container" class="mt-4 overflow-x-auto shadow-xl rounded-xl hidden">
+            <table class="min-w-full bg-white border-collapse">
+                <thead class="bg-indigo-600 text-white">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-sm font-medium">Source</th>
+                        <th class="px-4 py-3 text-left text-sm font-medium">Symbol</th>
+                        <th class="px-4 py-3 text-left text-sm font-medium">x</th>
+                        <th class="px-4 py-3 text-left text-sm font-medium">Standard Uncertainty</th>
+                        <th class="px-4 py-3 text-left text-sm font-medium">u(x)/x</th>
+                        <th class="px-4 py-3 text-left text-sm font-medium">u(x)^2</th>
+                    </tr>
+                </thead>
+                <tbody id="component-table-body" class="divide-y divide-gray-200">
+                    <!-- Rows rendered by JS -->
+                </tbody>
+            </table>
+            <p class="text-xs text-gray-500 p-2 italic">
+                Note: Component data and calculated combined uncertainty are loaded based on the selected dilution, but can be manually adjusted in the main input fields.
+            </p>
+        </div>
+
     </div>
 
-    <script src="calculator.js"></script>
+    <script>
+        const K_FACTOR = 2.0;
+
+        const ALL_DILUTION_DATA = {
+            '1X': {
+                result: 0.2500,
+                combinedUncertainty: 0.0295,
+                components: [
+                    { source: 'Sample volume', symbol: 'u(v), V1', x: 100.0000, u_x: 0.1559, u_x_div_x: 0.0016, u_x_sq: 0.0000 },
+                    { source: 'Calibration Standard', symbol: 'u(cal)', x: 5.0000, u_x: 0.0306, u_x_div_x: 0.0061, u_x_sq: 0.0000 },
+                    { source: 'Precision', symbol: 'u(p), P1', x: 1.0000, u_x: 0.0446, u_x_div_x: 0.0446, u_x_sq: 0.0020 },
+                    { source: 'Recovery', symbol: 'u(R)', x: 1.0064, u_x: 0.0345, u_x_div_x: 0.0343, u_x_sq: 0.0012 },
+                    { source: 'Calibration curve', symbol: 'u(curve)', x: 3.0628, u_x: -0.0584, u_x_div_x: -0.0191, u_x_sq: 0.0004 },
+                ],
+            },
+            '10X': {
+                result: 0.2500,
+                combinedUncertainty: 0.0304,
+                components: [
+                    { source: 'Sample volume', symbol: 'u(v), V2', x: 1100.0000, u_x: 0.8149, u_x_div_x: 0.0007, u_x_sq: 0.0000 },
+                    { source: 'Calibration Standard', symbol: 'u(cal)', x: 5.0000, u_x: 0.0306, u_x_div_x: 0.0061, u_x_sq: 0.0000 },
+                    { source: 'Precision', symbol: 'u(p)', x: 1.0000, u_x: 0.0336, u_x_div_x: 0.0336, u_x_sq: 0.0011 },
+                    { source: 'Recovery', symbol: 'u(R)', x: 0.7347, u_x: 0.0345, u_x_div_x: 0.0470, u_x_sq: 0.0022 },
+                    { source: 'Calibration curve', symbol: 'u(curve)', x: 3.0721, u_x: -0.0584, u_x_div_x: -0.0190, u_x_sq: 0.0004 },
+                ],
+            },
+            '25X': {
+                result: 0.2500,
+                combinedUncertainty: 0.0279,
+                components: [
+                    { source: 'Sample volume', symbol: 'u(v), V3', x: 2100.0000, u_x: 0.9320, u_x_div_x: 0.0004, u_x_sq: 0.0000 },
+                    { source: 'Calibration Standard', symbol: 'u(cal)', x: 5.0000, u_x: 0.0306, u_x_div_x: 0.0061, u_x_sq: 0.0000 },
+                    { source: 'Precision', symbol: 'u(p)', x: 1.0000, u_x: 0.0170, u_x_div_x: 0.0170, u_x_sq: 0.0003 },
+                    { source: 'Recovery', symbol: 'u(R)', x: 0.7347, u_x: 0.0345, u_x_div_x: 0.0470, u_x_sq: 0.0022 },
+                    { source: 'Calibration curve', symbol: 'u(curve)', x: 3.0721, u_x: -0.0584, u_x_div_x: -0.0190, u_x_sq: 0.0004 },
+                ],
+            },
+        };
+
+        // --- Global State ---
+        let currentDilution = '25X';
+        let result = ALL_DILUTION_DATA[currentDilution].result;
+        let combinedUncertainty = ALL_DILUTION_DATA[currentDilution].combinedUncertainty;
+        let showComponents = false;
+
+        // --- Utility Functions ---
+
+        /**
+         * Formats a number to a fixed decimal place string.
+         * @param {number} num
+         * @param {number} decimals
+         * @returns {string}
+         */
+        const formatNumber = (num, decimals = 4) => {
+            if (isNaN(num) || num === null) return 'N/A';
+            return Number(num).toFixed(decimals);
+        };
+
+        /**
+         * Creates an HTML string for a result card.
+         * @param {string} title
+         * @param {string} value
+         * @param {string} color
+         * @param {string} iconName
+         * @returns {string}
+         */
+        const createResultCard = (title, value, color, iconName) => {
+            const Icon = window.lucide[iconName];
+            const iconSvg = Icon ? `<span class="w-4 h-4 text-${color}-600 mr-1">${Icon({ width: 16, height: 16 }).outerHTML}</span>` : '';
+
+            return `
+                <div class="p-4 rounded-xl bg-${color}-50 border border-${color}-200">
+                    <div class="flex items-center justify-center mb-1">
+                        ${iconSvg}
+                        <p class="text-xs font-semibold uppercase text-${color}-600">${title}</p>
+                    </div>
+                    <p class="text-2xl font-extrabold text-${color}-800">${value}</p>
+                    <p class="text-xs text-gray-500 mt-1">EU/mL</p>
+                </div>
+            `;
+        };
+
+        // --- Core Logic ---
+
+        /**
+         * Performs the expanded uncertainty and interval calculations.
+         * @returns {{expandedUncertainty: number, uncertaintyMin: number, uncertaintyMax: number}}
+         */
+        const calculateResults = () => {
+            const expandedUncertainty = combinedUncertainty * K_FACTOR;
+            const uncertaintyMin = result - expandedUncertainty;
+            const uncertaintyMax = result + expandedUncertainty;
+            return { expandedUncertainty, uncertaintyMin, uncertaintyMax };
+        };
+
+        /**
+         * Renders the component data table rows.
+         */
+        const renderComponentTable = () => {
+            const data = ALL_DILUTION_DATA[currentDilution];
+            const tbody = document.getElementById('component-table-body');
+            let html = '';
+
+            data.components.forEach((d) => {
+                html += `
+                    <tr class="hover:bg-indigo-50 transition duration-100">
+                        <td class="px-4 py-3 text-sm font-medium text-gray-900">${d.source}</td>
+                        <td class="px-4 py-3 text-sm text-gray-700">${d.symbol}</td>
+                        <td class="px-4 py-3 text-sm text-gray-700">${formatNumber(d.x, 4)}</td>
+                        <td class="px-4 py-3 text-sm text-gray-700">${formatNumber(d.u_x, 4)}</td>
+                        <td class="px-4 py-3 text-sm text-gray-700">${formatNumber(d.u_x_div_x, 4)}</td>
+                        <td class="px-4 py-3 text-sm text-gray-700">${formatNumber(d.u_x_sq, 4)}</td>
+                    </tr>
+                `;
+            });
+
+            const expandedUncertainty = data.combinedUncertainty * K_FACTOR;
+
+            html += `
+                <tr class="bg-indigo-50 font-bold">
+                    <td colspan="5" class="px-4 py-3 text-right text-sm text-indigo-800">Combined uncertainty:</td>
+                    <td class="px-4 py-3 text-sm text-indigo-800">${formatNumber(data.combinedUncertainty, 4)}</td>
+                </tr>
+                <tr class="bg-indigo-100 font-bold">
+                    <td colspan="5" class="px-4 py-3 text-right text-sm text-indigo-800">Expanded uncertainty, k=2:</td>
+                    <td class="px-4 py-3 text-sm text-indigo-800">${formatNumber(expandedUncertainty, 4)}</td>
+                </tr>
+            `;
+
+            tbody.innerHTML = html;
+        };
+
+
+        /**
+         * Updates all dynamic parts of the UI.
+         */
+        const updateDisplay = () => {
+            // 1. Update Input Fields
+            document.getElementById('input-result').value = formatNumber(result);
+            document.getElementById('input-uc').value = formatNumber(combinedUncertainty);
+
+            // 2. Perform Calculations
+            const { expandedUncertainty, uncertaintyMin, uncertaintyMax } = calculateResults();
+
+            // 3. Update Result Cards
+            document.getElementById('card-expanded-uncertainty').innerHTML = createResultCard(
+                'Expanded Uncertainty Value', formatNumber(expandedUncertainty, 4), 'teal', 'PlusCircle'
+            );
+            document.getElementById('card-min-uncertainty').innerHTML = createResultCard(
+                'Uncertainty Interval Min', formatNumber(uncertaintyMin, 4), 'indigo', 'ChevronsDown'
+            );
+            document.getElementById('card-max-uncertainty').innerHTML = createResultCard(
+                'Uncertainty Interval Max', formatNumber(uncertaintyMax, 4), 'indigo', 'ChevronsUp'
+            );
+
+            // 4. Update Report Text
+            document.getElementById('report-result').innerHTML = `Report Result: ${formatNumber(result, 4)} $\\pm$ ${formatNumber(expandedUncertainty, 4)} EU/mL`;
+            document.getElementById('report-interval').innerHTML = `Uncertainty Interval: ${formatNumber(uncertaintyMin, 4)} to ${formatNumber(uncertaintyMax, 4)} EU/mL`;
+
+            // 5. Update Component Table Title and Visibility
+            document.getElementById('component-title').textContent = `Uncertainty Source Components (${currentDilution} Dilution Data)`;
+            document.getElementById('component-table-container').classList.toggle('hidden', !showComponents);
+
+            // 6. Update Toggle Icon
+            const ToggleIcon = showComponents ? window.lucide.MinusCircle : window.lucide.PlusCircle;
+            document.getElementById('toggle-icon').innerHTML = ToggleIcon({ class: 'w-5 h-5' }).outerHTML;
+
+            // 7. Render Component Table Content
+            renderComponentTable();
+
+            // 8. Update Dilution Buttons styling
+            document.querySelectorAll('#dilution-buttons button').forEach(button => {
+                const dilutionValue = button.getAttribute('data-dilution');
+                const isSelected = dilutionValue === currentDilution;
+                button.className = `px-4 py-2 rounded-full font-medium transition-all duration-200 shadow-sm
+                    ${isSelected
+                        ? 'bg-indigo-600 text-white shadow-indigo-400/50 scale-105'
+                        : 'bg-gray-100 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600'
+                    }`;
+            });
+        };
+
+        // --- Event Handlers ---
+
+        /**
+         * Changes the active dilution and updates state/display.
+         * @param {string} newDilution
+         */
+        const handleDilutionChange = (newDilution) => {
+            currentDilution = newDilution;
+            const data = ALL_DILUTION_DATA[newDilution];
+            // Reset the main inputs to the new dilution's defaults
+            result = data.result;
+            combinedUncertainty = data.combinedUncertainty;
+            updateDisplay();
+        };
+
+        /**
+         * Initializes icons by rendering SVGs from the imported Lucide library.
+         */
+        const initIcons = () => {
+            // Check if lucide object is available
+            if (window.lucide) {
+                document.getElementById('icon-scale').innerHTML = window.lucide.Scale({ class: 'w-8 h-8 text-indigo-600 mr-3' }).outerHTML;
+                document.getElementById('icon-droplet').innerHTML = window.lucide.Droplet({ class: 'w-4 h-4' }).outerHTML;
+                document.getElementById('icon-result').innerHTML = window.lucide.ArrowLeftRight({ class: 'w-6 h-6 text-indigo-600' }).outerHTML;
+                document.getElementById('icon-uc').innerHTML = window.lucide.Divide({ class: 'w-6 h-6 text-red-500' }).outerHTML;
+                document.getElementById('icon-plus-circle').innerHTML = window.lucide.PlusCircle({ class: 'w-5 h-5 mr-2' }).outerHTML;
+            }
+        };
+
+        /**
+         * Sets up the dilution selection buttons.
+         */
+        const setupDilutionButtons = () => {
+            const container = document.getElementById('dilution-buttons');
+            Object.keys(ALL_DILUTION_DATA).forEach(dilutionKey => {
+                const button = document.createElement('button');
+                button.textContent = dilutionKey;
+                button.setAttribute('data-dilution', dilutionKey);
+                button.onclick = () => handleDilutionChange(dilutionKey);
+                container.appendChild(button);
+            });
+        };
+
+        /**
+         * Sets up input change listeners.
+         */
+        const setupInputListeners = () => {
+            document.getElementById('input-result').addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                result = isNaN(val) ? 0 : val;
+                updateDisplay();
+            });
+
+            document.getElementById('input-uc').addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                combinedUncertainty = isNaN(val) ? 0 : val;
+                updateDisplay();
+            });
+
+            document.getElementById('toggle-components').addEventListener('click', () => {
+                showComponents = !showComponents;
+                updateDisplay();
+            });
+        };
+
+        // --- Initialization ---
+
+        window.onload = () => {
+            // Wait for Lucide module to load before initializing
+            const checkLucide = setInterval(() => {
+                if (window.lucide) {
+                    clearInterval(checkLucide);
+                    initIcons();
+                    setupDilutionButtons();
+                    setupInputListeners();
+                    updateDisplay();
+                }
+            }, 50);
+        };
+
+    </script>
 </body>
 </html>
