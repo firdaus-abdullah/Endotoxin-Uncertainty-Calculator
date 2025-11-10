@@ -3,153 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Endotoxin MU Calculator</title>
+    <title>Endotoxin Uncertainty Calculator</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-            background-color: #f4f4f4;
-        }
-        .container {
-            max-width: 900px;
-            margin: auto;
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
-        h2 {
-            color: #007bff;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-        th {
-            background-color: #f2f2f2;
-        }
-        .highlight {
-            background-color: #ffff00; /* Yellow highlight for input/key fields */
-        }
-        input[type="number"] {
-            width: 100px;
-            padding: 5px;
-            box-sizing: border-box;
-            border: 1px solid #ccc;
-        }
-        .section-header {
-            background-color: #e9ecef;
-            font-weight: bold;
-            text-align: center;
-        }
-        button {
-            padding: 10px 15px;
-            background-color: #28a745;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-top: 15px;
-        }
-        button:hover {
-            background-color: #1e7e34;
-        }
+        body { font-family: Arial, sans-serif; max-width: 650px; margin: 30px auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); background-color: #f9f9f9; }
+        h1 { color: #2c3e50; text-align: center; border-bottom: 2px solid #3498db; padding-bottom: 10px; margin-bottom: 20px; }
+        .input-group { margin-bottom: 15px; padding: 10px; background-color: #ecf0f1; border-radius: 5px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #34495e; }
+        select, input[type="number"] { width: 100%; padding: 10px; border: 1px solid #bdc3c7; border-radius: 4px; box-sizing: border-box; font-size: 16px; }
+        button { width: 100%; padding: 12px; background-color: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; margin-top: 20px; }
+        button:hover { background-color: #2980b9; }
+        #results-area { margin-top: 25px; padding: 15px; border: 2px solid #2ecc71; border-radius: 5px; background-color: #e8f8f5; }
+        .result-line { margin-bottom: 8px; font-size: 1.1em; }
+        .result-value { font-weight: bold; color: #e74c3c; }
+        .label-key { background-color: #f39c12; color: white; padding: 3px 6px; border-radius: 3px; margin-right: 5px; font-size: 0.8em; }
     </style>
 </head>
 <body>
-
-<div class="container">
-    <h2>🦠 Endotoxin MU Calculator</h2>
+    <h1>🔬 Endotoxin MU Calculator</h1>
     
-    <p>Please enter the required **Result (EU/mL)** and the **Expanded Uncertainty Value (Log10)** corresponding to the dilution used for your sample.</p>
-    
-    <table>
-        <thead>
-            <tr>
-                <th colspan="2">Parameter</th>
-                <th>Value</th>
-                <th>Note</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr class="highlight">
-                <td colspan="2">Sample Dilution:</td>
-                <td>
-                    <select id="sampleDilution" onchange="updateUncertaintyPlaceholder()">
-                        <option value="1">1X</option>
-                        <option value="10">10X</option>
-                        <option value="25">25X</option>
-                    </select>
-                </td>
-                <td>Key in here</td>
-            </tr>
-            <tr class="highlight">
-                <td colspan="2">Result (EU/mL):</td>
-                <td><input type="number" id="resultEU" value="50"></td>
-                <td>Key in result here</td>
-            </tr>
-            <tr class="highlight">
-                <td colspan="2">Expanded Uncertainty Value (Log10):</td>
-                <td><input type="number" id="expandedUncertaintyLog10" value="0.058971"></td>
-                <td>Combined uncertainty value, k=2. **Value changes based on selected Dilution.**</td>
-            </tr>
-            
-            <tr class="section-header"><td colspan="4">CALCULATED RESULTS</td></tr>
-            <tr>
-                <td rowspan="2">Report Result:</td>
-                <td>(EU/mL)</td>
-                <td><span id="reportResultEU"></span> $\pm$ <span id="reportUncertaintyEU"></span></td>
-                <td rowspan="2">Include uncertainty to the result</td>
-            </tr>
-            <tr>
-                <td>(Log10)</td>
-                <td><span id="log10Result"></span></td>
-                <td>Result converted to Log10</td>
-            </tr>
-            <tr>
-                <td rowspan="2">MU of the sample (EU/mL):</td>
-                <td>Lower:</td>
-                <td id="muLower"></td>
-                <td rowspan="2">Upper and lower interval, result will minus and add from expanded uncertainty value (Log10)</td>
-            </tr>
-            <tr>
-                <td>Upper:</td>
-                <td id="muUpper"></td>
-            </tr>
-            <tr>
-                <td colspan="2">Uncertainty Interval (EU/mL):</td>
-                <td><span id="intervalLower"></span> to <span id="intervalUpper"></span> EU/mL</td>
-                <td>**Report as uncertainty interval, compare with specification**</td>
-            </tr>
-        </tbody>
-    </table>
-
-    <button onclick="calculateEndotoxinMU()">Calculate Endotoxin MU</button>
-
-    <div class="note">
-        <p>The **Expanded Uncertainty Value (Log10)** input field is automatically populated with the $k=2$ value from the source data for the selected dilution (1X, 10X, or 25X). You may adjust this value manually if needed.</p>
-        <ul>
-            <li>**1X:** 0.058971</li>
-            <li>**10X:** 0.060709</li>
-            <li>**25X:** 0.055825</li>
-        </ul>
+    <div class="input-group">
+        <label for="dilution">Select Sample Dilution:</label>
+        <select id="dilution" onchange="calculateUncertainty()">
+            <option value="1X">1X</option>
+            <option value="10X">10X</option>
+            <option value="25X">25X</option>
+        </select>
     </div>
-</div>
 
-<script src="calculator.js"></script>
-<script>
-    // Initial call to set placeholder and calculate
-    document.addEventListener('DOMContentLoaded', () => {
-        updateUncertaintyPlaceholder();
-        calculateEndotoxinMU();
-    });
-</script>
+    <div class="input-group">
+        <label for="result">Analytical Result (EU/mL):</label>
+        <input type="number" id="result" value="50.0000" step="any" oninput="calculateUncertainty()">
+    </div>
 
+    <div id="results-area">
+        <h2>Calculation Results</h2>
+        <div class="result-line">
+            <span class="label-key">1</span> **Combined Standard Uncertainty ($u_c$):** <span id="uc_value" class="result-value">0.0000</span> (Relative: <span id="relative_uc_value">0.00%</span>)
+        </div>
+        <div class="result-line">
+            <span class="label-key">2</span> **Expanded Uncertainty Value (Log10):** <span id="expanded_log10_value" class="result-value">0.0000</span>
+        </div>
+        <div class="result-line">
+            <span class="label-key">3</span> **Report Result:** <span id="report_result_with_mu" class="result-value">0.0000 &plusmn; 0.0000</span> EU/mL
+        </div>
+        <div class="result-line">
+            <span class="label-key">4</span> **Uncertainty Interval (EU/mL):** <span id="interval_low" class="result-value">0.0000</span> to <span id="interval_high" class="result-value">0.0000</span> EU/mL
+        </div>
+    </div>
+
+    <script src="calculator.js"></script>
 </body>
 </html>
